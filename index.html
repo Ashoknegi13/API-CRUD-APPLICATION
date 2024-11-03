@@ -1,0 +1,430 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<title>PHP REST API CRUD</title>
+	<style>
+		body{
+			background:  slateblue;
+			font-family: arial;
+			margin: 0px;
+			padding: 0px;
+			height: 600px;
+		}
+		#main{
+			margin-left: 300px;
+			background: white;
+
+		}
+		#header{
+			background: purple;
+			padding:10px;
+			color: white;
+		}
+		#search{
+			border-radius: 50px;
+		}
+		#table-form{
+			background:orange;
+			padding:20px;
+			color: white;
+
+		}
+		#addForm input{
+			border-radius: 50px;
+		}
+		#save-button{
+			background-color: green;
+			color: white;
+			cursor: pointer;
+		}
+		thead{
+			background: red;
+			color: white;
+		}
+		.edit-btn{
+			background: green;
+			color: white;
+			border-radius: 40px;
+			cursor: pointer;
+		}
+		.delete-btn{
+			background: red;
+			color: white;
+			border-radius: 40px;
+			cursor: pointer;
+		}
+		#table-data{
+			padding:10px;
+		}
+		#success-message{
+					background: green;
+					color: white;
+					padding: 10px;
+					margin: 10px;
+					position: absolute;
+					top: 15px;
+					right: 15px;
+					display: none;
+		}
+	#error-message{
+				    background: red;
+					color: white;
+					padding: 10px;
+					margin: 10px;
+					position: absolute;
+					top: 15px;
+					right: 15px;
+					display: none;
+	}
+		#modal{
+			background: rgba(0, 0, 0, 0.2);
+			position: fixed;
+			left: 0;
+			top: 10px;
+			height: 100%;
+			width: 100%;
+			z-index: 100;
+			display: none;
+		
+		}
+		#modal-form{
+			background: white;
+			width: 40%;
+			position: relative;
+			left: calc(50% - 20%);
+			padding: 15px;
+			border-radius: 4px;
+		}
+		#modal-form h2{
+			margin: 0 0 15px;
+			padding-bottom: 10px;
+			border-bottom: 1px solid black;
+		}
+		#close-btn{
+			background: red;
+			color: white;
+			width: 30px;
+			height: 30px;
+			line-height: 30px;
+			text-align: center;
+			border-radius: 50%;
+			position: absolute;
+			top : -15px;
+			right: -15px;
+			cursor: pointer;
+		}
+
+
+
+	</style>
+</head>
+<body>
+		<table id="main" border="0" cellspacing="0">
+			 <tr>
+			 	<td id="header">
+			 		<h1>PHP REST API CRUD</h1>
+			 		<div id="search-bar">
+			 			<label>Search : </label>
+			 			<input type="search" id="search" autocomplete="off">
+			 		</div>
+			 	</td>
+			 </tr>
+
+			 <tr>
+			 	<td id="table-form" >
+			 		<form id="addForm">
+			 		Name : <input type="text" name="sname" id="sname" autocomplete="off">
+			 		Age : <input type="number" name="sage" id="sage" autocomplete="off">
+			 		City : <input type="text" name="scity" id="scity" autocomplete="off">
+			 		<input type="submit" id="save-button" value="Save">
+			 	 </form>
+			 	</td>
+			 </tr>
+
+			 <tr>
+			 	<td id="table-data">
+			 		<table width="100%" cellspacing="0" cellpadding="10px" border="1px solid black">
+			 			<thead>
+			 			<tr>
+			 				<th width="40px">Id</th>
+			 				<th>Name</th>
+			 				<th width="50px">Age</th>
+			 				<th width="150px">City</th>
+			 				<th width="60px">Edit</th>
+			 				<th width="70px">Delete</th>
+			 			</tr>
+			 		</thead>
+			 			<tbody id="load-data">
+			 			 
+			 		</tbody>
+			 		</table>
+			 	</td> 
+			 </tr>
+		</table>
+
+		<div id="error-message" class="error-message"></div>
+		<div id="success-message" class="success-message"></div>
+
+
+		<div id="modal">
+			<div id="modal-form">
+				<h2>Edit Form</h2>
+				<form id="edit-form" accept="">
+					<table width="100%" cellspacing="0" cellpadding="10px" autocomplete="off">
+							<tr>
+								<td width="90px"> Name :</td>
+								<td><input type="text" id="edit-name" name="sname"></td>
+								<td><input type="text" id="edit-id" name="sid" hidden></td>
+							</tr>
+							<tr>
+								<td width="90px"> Age :</td>
+								<td><input type="number" id="edit-age" name="sage"></td>
+							</tr>
+							<tr>
+								<td width="90px"> City :</td>
+								<td><input type="text" id="edit-city" name="scity"></td>
+							</tr>
+							<tr>
+								<td><input type="submit" id="update-btn" value="Update"></td>
+							</tr>
+					</table>
+				</form>
+				<div id="close-btn">X</div>
+			</div>
+		</div>
+
+		<script type="text/javascript" src="js/jquery.js"></script>
+		<script>
+			     $(document).ready(function(){
+	// fetch all record  ------------------------------------------------------------------------------------------------------------>>
+
+			     	function loadTable(){
+			     		$('#load-data').html("");
+			     		$.ajax({
+			     			url : "http://localhost/php-rest-api/api-fetch-all.php",
+			     			type : "GET",
+
+	// dataType : JSON,  <---  we do this comment because we already define the type of data is json in api-fetch-all.php this file header section 
+			     		
+			     			success : function(data){
+			     				if(data.status == false){
+			     				$("#load-data").append("<tr><td colspan='6'><h2>" + data.message +"</h2></td></tr>");
+			     				}else{
+			     					$.each(data , function(key,value){
+			     				  $("#load-data").append("<tr>" +
+ 			                                                "<td>" + value.id + "</td>"+
+ 			     				  	                         "<td>" + value.student_name + "</td>" +
+			     				  	                         "<td>" + value.age + "</td>" +
+			     				  	                         "<td>" + value.city + "</td>" + 
+			     				  	                         "<td><button class='edit-btn' data-eid= '" + value.id + "'>Edit</button></td>" +
+			     				  	                         "<td><button class='delete-btn' data-id= '" + value.id + "'>delete</button></td>" +
+			     				  	                        "</tr>");
+			     					});
+			     				}
+			     			}
+			     		});
+			     	}                                                               //  closing of loadTable();   ================>>>                  
+			     	loadTable();    // function call -------------->>
+
+
+			     	// show success or  error message --------------------------------------------------->>
+			     	function message(message, status){
+			     			if(status == true){
+			     					$('#success-message').html(message).slideDown(1000);
+			     					$('#error-message').slideUp();
+			     					setTimeout(function(){
+			     						$('#success-message').slideUp(1000);
+			     					},4000);
+			     			}else if(status == false){
+			     					$('#error-message').html(message).slideDown(1000);
+			     					$('#success-message').slideUp();
+			     		     		setTimeout(function(){
+			     						$('#error-message').slideUp(1000);
+			     					},4000);
+			     			}
+			     	}
+
+
+ 					function jsonData(targetForm){
+  // this function beasically use to get all input field data from form ----------------------------------------------------------------->
+			     	 	var arr = $(targetForm).serializeArray();
+			     	  
+ //  convert this arr var (multidiemantional array) to javascript object----------------------------------------------------------->>>
+			     	 	var obj = {};
+ 						for(var a=0 ; a < arr.length ; a++){
+ 							if(arr[a].value == ""){
+ 								return false;
+ 							}
+ 							obj[arr[a].name] = arr[a].value;
+ 						}
+ // convert  obj into json using js function ----------------------------------------------------------------------------------------------->	
+ 						  var json_string = JSON.stringify(obj);
+ 						  return json_string;
+ 					}                                                          // closing of jsonData function(); ================>>>
+
+
+
+ 			// this is the code of insert data---------------------------------------------------------------------------------------------------->>
+			     	 $("#save-button").on("click",function(e){
+			     	 	e.preventDefault();
+ 						
+// this is the code of to get a return variable data from jsondata(targetform)----------------------------------------------------->>
+ 						var jsonobj = jsonData('#addForm');
+ 						if( jsonobj == false){
+ 							 message("all Field are require",false);
+ 						}else{
+ 							    $.ajax({
+			     		     	url : "http://localhost/php-rest-api/api-insert.php",
+			     		 	   type : "POST",
+			     		 	   data : jsonobj,
+			     		      	success : function(data){
+			     		      			message(data.message, data.status);
+
+			     		      			if(data.status== true){
+			     		      				loadTable();
+			     		      				$('#addForm').trigger('reset');
+			     		      			}
+			     		      	}
+			     		      });
+ 						}
+
+
+ 					});     //   closig of save button function  ============ >>  
+
+
+
+			     // ++++++++++++++++++++++++++++++++++++
+
+// Delete record----------------------------------------------------------------------------------------------------------------------->
+
+// Fetch single record : and show in modal box------------------------------------------------------------------------------------------>
+			     	 $(document).on("click",".edit-btn" , function(e){
+			     	 	$('#modal').slideDown(1000);
+			     	 	var student_id = $(this).data("eid");
+
+// get id from api-fetch-single.php file  ------------------------------------------------------------------------------------------------->
+			     	 	var obj ={sid : student_id};
+
+// convert  obj into json using js function ----------------------------------------------------------------------------------------------->
+			     	 	var myJSON = JSON.stringify(obj);
+			     	 	$.ajax({
+			     	 		url : "http://localhost/php-rest-api/api-fetch-single.php",
+			     	 		type : "POST",
+			     	 		data : myJSON,
+			     	 		success : function(data){
+			     	 			$('#edit-id').val(data[0].id);
+			     	 			$('#edit-name').val(data[0].student_name);
+			     	 			$('#edit-age').val(data[0].age);
+			     	 			$('#edit-city').val(data[0].city);
+			     	 		}
+			     	 	});
+
+			     	  	
+			     	 });                                                        //  closing of edit btn functinon  ================>>>
+			     
+// hide modal box   ------------------------------------------------------------------------------------------------------------------------->
+			     	 $('#close-btn').on("click",function(){
+			     	 	$('#modal').slideUp(1000);
+			     	 });
+
+
+
+
+// update modal update data 
+			     	 $('#update-btn').on("click",function(e){
+			     	 	 e.preventDefault();
+			     	 	 	var jsondata = jsonData('#edit-form');
+			     	 	 	if(jsondata == false){
+			     	 	 		message("all Field are require" , false);
+			     	 	 	}else{
+			     	 	 		$.ajax({
+			     	 	 			url : "http://localhost/php-rest-api/api-update.php",
+			     	 	 			type : "POST",
+			     	 	 			data : jsondata,
+			     	 	 			success : function(data){
+			     	 	 				message(data.message, data.status);
+			     	 	 				if(data.status==true){
+			     	 	 					$('#modal').slideUp(1000);
+			     	 	 					loadTable();
+			     	 	 				}
+			     	 	 			}
+
+			     	 	 		});
+			     	 	 	}
+			     	 });
+
+
+// delete data from table using api ------------------------------------------------------------------------------>>
+
+			     	 $(document).on('click','.delete-btn',function(e){
+			     	 	if(confirm("do you really want to delete this data")){
+			     	 		var student_id = $(this).data('id');
+			     	 		var obj = {sid : student_id};
+			     	 		var myJSON = JSON.stringify(obj);
+			     	 		var row = this;
+			     	 	$.ajax({
+			     	 		url : "http://localhost/php-rest-api/api-delete.php",
+			     	 		type : "POST",
+			     	 		data : myJSON,
+			     	 		success : function(data){
+			     	 			 	message(data.message,data.status);
+			     	 			 	 $(row).closest("tr").fadeOut('slow');
+			     	 		}
+			     	 	});
+
+			     	 }
+			     });
+ 
+
+// this is live search record ------------------------------->>
+			     	 $('#search').on('keyup',function(){
+  					var search_term = $(this).val();
+  					$('#load-data').html("");
+ 
+  					    $.ajax({
+  					    		url  : "http://localhost/php-rest-api/api-search.php?search=" + search_term ,
+  					    		type : "POST",
+  					    		success : function(data){
+  					    		if(data.status == false){
+			     				$("#load-data").append("<tr><td colspan='6'><h2>" + data.message +"</h2></td></tr>");
+			     				}else{
+			     					$.each(data , function(key,value){
+			     			     	  $("#load-data").append("<tr>" +
+ 			                                                "<td>" + value.id + "</td>"+
+ 			     				  	                         "<td>" + value.student_name + "</td>" +
+			     				  	                         "<td>" + value.age + "</td>" +
+			     				  	                         "<td>" + value.city + "</td>" + 
+			     				  	                         "<td><button class='edit-btn' data-eid= '" + value.id + "'>Edit</button></td>" +
+			     				  	                         "<td><button class='delete-btn' data-id= '" + value.id + "'>delete</button></td>" +
+			     				  	                        "</tr>");
+			     					});
+			     				  }
+  					    		}
+  					       });
+			     	 });
+
+
+
+			     }); // this is the ready function brackets    -----------------------------------------------------------------------> 
+		</script>
+</body>
+</html>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
